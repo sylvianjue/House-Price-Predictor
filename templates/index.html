@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House Price Predictor</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --line: #d9dee7;
+    --brand: #1d4ed8;
+    --brand-dark: #1e40af;
+    --good: #065f46;
+    --good-bg: #ecfdf5;
+    --bad: #991b1b;
+    --bad-bg: #fef2f2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.7rem; margin: 8px 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 4px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 0.8rem; display: block; }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .has-error input, .has-error select { border-color: var(--bad); }
+  .err { color: var(--bad); font-size: 0.82rem; margin-top: 4px; }
+  .full { grid-column: 1 / -1; }
+  button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 13px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--brand);
+    border: 0;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--brand-dark); }
+  .result {
+    background: var(--good-bg);
+    border: 1px solid #a7f3d0;
+    color: var(--good);
+    text-align: center;
+  }
+  .result .label { font-size: 0.95rem; margin: 0; }
+  .result .price { font-size: 2.4rem; font-weight: 800; margin: 4px 0; }
+  .result .range { margin: 0; font-size: 0.95rem; }
+  .banner {
+    background: var(--bad-bg);
+    border: 1px solid #fecaca;
+    color: var(--bad);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+  }
+  .about h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  .about p, .about li { color: var(--muted); font-size: 0.9rem; margin: 4px 0; }
+  .about ul { padding-left: 20px; margin: 6px 0; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>House Price Predictor</h1>
+  <p class="sub">Type in the details of a house in King County, USA (the Seattle area) and the model will guess its selling price.</p>
+
+  {% if load_problems %}
+    <div class="banner">
+      <strong>The model could not be loaded.</strong>
+      {% for p in load_problems %}<div>{{ p }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  {% if errors.get('_general') %}
+    <div class="banner">{{ errors['_general'] }}</div>
+  {% endif %}
+
+  {% if result %}
+    <div class="card result" id="result">
+      <p class="label">Estimated selling price</p>
+      <p class="price">{{ result.price_text }}</p>
+      {% if result.range_text %}
+        <p class="range">Likely range: {{ result.range_text }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <form class="card" method="post" action="/">
+    <div class="grid">
+
+      <div class="{{ 'has-error' if errors.get('bedrooms') }}">
+        <label for="bedrooms">Bedrooms</label>
+        <input type="number" id="bedrooms" name="bedrooms" min="1" max="10" step="1" value="{{ form.bedrooms }}" required>
+        {% if errors.get('bedrooms') %}<div class="err">{{ errors['bedrooms'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('bathrooms') }}">
+        <label for="bathrooms">Bathrooms <span class="hint">0.5 = a room with a toilet but no shower</span></label>
+        <input type="number" id="bathrooms" name="bathrooms" min="0.5" max="8" step="0.25" value="{{ form.bathrooms }}" required>
+        {% if errors.get('bathrooms') %}<div class="err">{{ errors['bathrooms'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('sqft_living') }}">
+        <label for="sqft_living">Living space (sqft) <span class="hint">Inside the house</span></label>
+        <input type="number" id="sqft_living" name="sqft_living" min="300" max="13540" step="1" value="{{ form.sqft_living }}" required>
+        {% if errors.get('sqft_living') %}<div class="err">{{ errors['sqft_living'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('sqft_lot') }}">
+        <label for="sqft_lot">Land size (sqft) <span class="hint">The whole plot</span></label>
+        <input type="number" id="sqft_lot" name="sqft_lot" min="500" max="1700000" step="1" value="{{ form.sqft_lot }}" required>
+        {% if errors.get('sqft_lot') %}<div class="err">{{ errors['sqft_lot'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('floors') }}">
+        <label for="floors">Floors</label>
+        <select id="floors" name="floors">
+          {% for f in floor_options %}
+            <option value="{{ f }}" {{ 'selected' if form.floors|string == f|string }}>{{ f }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('floors') %}<div class="err">{{ errors['floors'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('sqft_basement') }}">
+        <label for="sqft_basement">Basement size (sqft) <span class="hint">Type 0 if there is none</span></label>
+        <input type="number" id="sqft_basement" name="sqft_basement" min="0" max="5000" step="1" value="{{ form.sqft_basement }}" required>
+        {% if errors.get('sqft_basement') %}<div class="err">{{ errors['sqft_basement'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('yr_built') }}">
+        <label for="yr_built">Year built</label>
+        <input type="number" id="yr_built" name="yr_built" min="1900" max="{{ data_year }}" step="1" value="{{ form.yr_built }}" required>
+        {% if errors.get('yr_built') %}<div class="err">{{ errors['yr_built'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('yr_renovated') }}">
+        <label for="yr_renovated">Year renovated <span class="hint">Type 0 if never renovated</span></label>
+        <input type="number" id="yr_renovated" name="yr_renovated" min="0" max="{{ data_year }}" step="1" value="{{ form.yr_renovated }}">
+        {% if errors.get('yr_renovated') %}<div class="err">{{ errors['yr_renovated'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('grade') }}">
+        <label for="grade">Grade <span class="hint">Quality of building and design</span></label>
+        <select id="grade" name="grade">
+          {% for g, text in grade_labels.items() %}
+            <option value="{{ g }}" {{ 'selected' if form.grade|string == g|string }}>{{ text }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('grade') %}<div class="err">{{ errors['grade'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('condition') }}">
+        <label for="condition">Condition</label>
+        <select id="condition" name="condition">
+          {% for c, text in condition_labels.items() %}
+            <option value="{{ c }}" {{ 'selected' if form.condition|string == c|string }}>{{ text }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('condition') %}<div class="err">{{ errors['condition'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('view') }}">
+        <label for="view">View</label>
+        <select id="view" name="view">
+          {% for vw, text in view_labels.items() %}
+            <option value="{{ vw }}" {{ 'selected' if form.view|string == vw|string }}>{{ text }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('view') %}<div class="err">{{ errors['view'] }}</div>{% endif %}
+      </div>
+
+      <div class="{{ 'has-error' if errors.get('waterfront') }}">
+        <label for="waterfront">Waterfront</label>
+        <select id="waterfront" name="waterfront">
+          <option value="0" {{ 'selected' if form.waterfront|string == '0' }}>No</option>
+          <option value="1" {{ 'selected' if form.waterfront|string == '1' }}>Yes</option>
+        </select>
+        {% if errors.get('waterfront') %}<div class="err">{{ errors['waterfront'] }}</div>{% endif %}
+      </div>
+
+      <div class="full {{ 'has-error' if errors.get('zipcode') }}">
+        <label for="zipcode">Zipcode (area)</label>
+        <select id="zipcode" name="zipcode" required>
+          <option value="" {{ 'selected' if not form.zipcode }}>Choose a zipcode...</option>
+          {% for z in zipcodes %}
+            <option value="{{ z }}" {{ 'selected' if form.zipcode == z }}>{{ z }}</option>
+          {% endfor %}
+        </select>
+        {% if errors.get('zipcode') %}<div class="err">{{ errors['zipcode'] }}</div>{% endif %}
+      </div>
+
+    </div>
+    <button type="submit">Predict price</button>
+  </form>
+
+  <div class="card about">
+    <h2>About this model</h2>
+    <p>This is a Gradient Boosting regression model trained on more than 21,000 house sales in King County, USA (Kaggle dataset).</p>
+    <ul>
+      {% if test_r2 is not none %}<li>On houses it had never seen, it explained about {{ (test_r2 * 100)|round(1) }}% of the changes in price (R2).</li>{% endif %}
+      {% if test_mae %}<li>On those houses, its guess was off by about ${{ '{:,.0f}'.format(test_mae) }} on average.</li>{% endif %}
+      <li>The prices come from sales between May 2014 and May 2015, so today's real prices are likely higher.</li>
+      <li>It only knows King County. Do not use it for houses in other places.</li>
+      <li>It is a learning project and a guess, not an official valuation.</li>
+    </ul>
+  </div>
+
+  <footer>Machine Learning project - Python, pandas, scikit-learn, Flask</footer>
+</div>
+
+{% if result %}
+<script>
+  var r = document.getElementById('result');
+  if (r) { r.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+</script>
+{% endif %}
+</body>
+</html>
