@@ -1,0 +1,28 @@
+{
+  "model": "Gradient Boosting Regressor (tuned)",
+  "target": "price (trained on log of price)",
+  "numeric_features": [
+    "bedrooms",
+    "bathrooms",
+    "sqft_living",
+    "sqft_lot",
+    "floors",
+    "waterfront",
+    "view",
+    "condition",
+    "grade",
+    "sqft_basement",
+    "house_age",
+    "was_renovated",
+    "has_basement"
+  ],
+  "categorical_features": [
+    "zipcode"
+  ],
+  "test_mae": 71748.32,
+  "test_rmse": 133706.65,
+  "test_r2": 0.8638,
+  "training_rows": 17276,
+  "sklearn_version": "1.6.1",
+  "note": "Prices come from house sales in King County, USA between May 2014 and May 2015."
+}
