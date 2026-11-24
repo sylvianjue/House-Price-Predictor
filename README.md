@@ -3,7 +3,7 @@
 A machine learning project that predicts the selling price of a house in King County, USA (the Seattle area).
 The model is trained on the Kaggle dataset **House Sales in King County, USA** (more than 21,000 sales from May 2014 to May 2015) and deployed as a **FastAPI** web app.
 
-**Live app:** https://YOUR-RENDER-LINK.onrender.com
+**Live app:** https://house-price-predictor-nn0e.onrender.com/
 (The free plan sleeps when nobody uses it, so the first load can take about a minute.)
 
 ## Results (on data the model never saw)
